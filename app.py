@@ -6,7 +6,6 @@ import re
 import json
 from googleapiclient.discovery import build
 
-from static.string_randomizer import generate_string_query
 from static.id_randomizer import generate_valid_video_id
 from static.word_randomizer import generate_word_query
 
@@ -52,11 +51,8 @@ def index():
 
 @app.route('/api/random-video')
 def random_video():
-    method = random.choice(['string', 'id', 'word'])
-
-    if method == 'string':
-        query = generate_string_query()
-    elif method == 'id':
+    method = random.choice(['id', 'word'])
+    if method == 'id':
         query = generate_valid_video_id()
     else:
         query = generate_word_query()

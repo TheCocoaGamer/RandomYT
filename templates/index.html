@@ -26,9 +26,9 @@
   <script>
     let player;
     let currentVideoId = null;
-    let isFetchingVideo = false;  // Lock *inside* fetch logic
+    let isFetchingVideo = false;
+    let playbackTimeout = null;
 
-    // Load the YouTube Iframe API
     let tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     let firstScriptTag = document.getElementsByTagName('script')[0];
@@ -56,10 +56,11 @@
 
     function fetchAndPlayVideo() {
       if (isFetchingVideo) {
-        console.log("⏳ fetchAndPlayVideo already running. Ignoring new call.");
+        console.log("⏳ Already waiting for current video to finish. Ignoring fetch call.");
         return;
       }
-      isFetchingVideo = true; // lock it
+
+      isFetchingVideo = true;  // Lock here and *do not* unlock until next END
 
       fetch('/api/random-video')
         .then(response => response.json())
@@ -67,10 +68,20 @@
           if (data.videoId) {
             console.log("🎯 New Video ID:", data.videoId);
             console.log("Method:", data.method, "| Query:", data.query, "| Filter:", data.filter, "| Source:", data.fallback);
-            player.loadVideoById(data.videoId);
+
             currentVideoId = data.videoId;
+            player.loadVideoById(data.videoId);
+
+            // Optional: If video never starts, try again after timeout
+            if (playbackTimeout) clearTimeout(playbackTimeout);
+            playbackTimeout = setTimeout(() => {
+              console.warn("⚠️ Video failed to start or blocked. Forcing next video.");
+              isFetchingVideo = false;
+              fetchAndPlayVideo();
+            }, 10000); // 10 seconds fallback
+
           } else {
-            console.warn("⚠️ No video ID found for query:", data.query, "| Method:", data.method);
+            console.warn("⚠️ No video ID found for query.");
             isFetchingVideo = false;
             setTimeout(fetchAndPlayVideo, 2000);
           }
@@ -85,21 +96,23 @@
     function onPlayerStateChange(event) {
       console.log("Player state changed:", event.data);
 
-      if (event.data === YT.PlayerState.ENDED) {
-        let videoData = player.getVideoData();
-        let reportedVideoId = videoData && videoData.video_id;
+      const videoData = player.getVideoData();
+      const reportedVideoId = videoData ? videoData.video_id : null;
 
+      if (event.data === YT.PlayerState.PLAYING) {
+        if (playbackTimeout) clearTimeout(playbackTimeout);
+        console.log("▶️ Video is now playing:", reportedVideoId);
+        // Notice: We do NOT unlock here anymore.
+      }
+
+      if (event.data === YT.PlayerState.ENDED) {
         if (reportedVideoId !== currentVideoId) {
           console.log(`⚠️ END event ignored. Reported ID "${reportedVideoId}" does not match expected "${currentVideoId}".`);
           return;
         }
-
-        console.log("🔄 Video ended. Attempting to load next...");
-        fetchAndPlayVideo();  // New fetch, guarded by isFetchingVideo
-      }
-
-      if (event.data === YT.PlayerState.PLAYING) {
-        isFetchingVideo = false;  // Unlock fetch when playback starts
+        console.log("🔄 Video ended. Ready to load next.");
+        isFetchingVideo = false;  // Unlock only here
+        fetchAndPlayVideo();
       }
     }
   </script>
