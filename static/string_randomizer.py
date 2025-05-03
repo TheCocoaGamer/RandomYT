@@ -3,18 +3,10 @@ import string
 
 def generate_string_query():
     letters = list(string.ascii_uppercase)
-    kept_letters = []
-
-    for letter in letters:
-        if random.randint(10, 90) >= random.randint(1, 100):
-            kept_letters.append(letter)
-
+    result = [letter for letter in letters if random.randint(1, 100) <= random.randint(10, 90)]
     if random.random() < 0.85:
-        random.shuffle(kept_letters)
-
-    query = ''.join(kept_letters)
-
+        random.shuffle(result)
+    query = ''.join(result)
     if random.random() < 0.25:
-        query += ' ' + generate_string_query()
-
+        query += ' ' + ''.join(random.sample(letters, random.randint(2, 6)))
     return query

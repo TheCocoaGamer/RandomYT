@@ -31,36 +31,43 @@
           .then(response => response.json())
           .then(data => {
             if (data.videoId) {
-              console.log("▶️ Video ID:", data.videoId);
+              console.log("🎯 New Video ID:", data.videoId);
+              console.log("Method:", data.method, "| Query:", data.query, "| Filter:", data.filter);
               loadVideo(data.videoId);
             } else {
-              console.error("No video ID returned. Retrying...");
-              setTimeout(fetchAndPlayVideo, 2000);
+              console.warn("⚠️ No video ID found for query:", data.query, "| Method:", data.method);
+              setTimeout(fetchAndPlayVideo, 2000); // Retry in 2 seconds
             }
           })
           .catch(err => {
-            console.error("Error fetching video:", err);
-            setTimeout(fetchAndPlayVideo, 2000);
+            console.error("❌ Error fetching video:", err);
+            setTimeout(fetchAndPlayVideo, 3000);
           });
       }
 
       function loadVideo(videoId) {
         const iframe = document.getElementById("player");
-        iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&cc_load_policy=1&enablejsapi=1&modestbranding=1&rel=0&controls=0`;
+        iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&cc_load_policy=1&enablejsapi=1&modestbranding=1&rel=0&controls=1`;
       }
 
-      // Listen for video end (YouTube iframe API workaround)
+      // Listen for video end → fetch new video
       window.addEventListener("message", (event) => {
         if (typeof event.data !== "string") return;
         try {
           const message = JSON.parse(event.data);
-          if (message.event === "onStateChange" && message.info === 0) {
-            console.log("⏭ Video ended, fetching new one...");
-            fetchAndPlayVideo();
+          if (message.event === "onStateChange") {
+            console.log("Player state changed:", message.info);
+            if (message.info === 0) { // 0 = ended
+              console.log("🔄 Video ended. Loading next...");
+              fetchAndPlayVideo();
+            }
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error("❌ Failed to parse player message:", e);
+        }
       });
 
+      // Start the first video
       fetchAndPlayVideo();
     </script>
   </body>

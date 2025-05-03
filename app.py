@@ -24,33 +24,53 @@ def random_video():
     else:
         query = generate_word_query()
 
-    # Perform YouTube search from the BACKEND
+    print(f"🔎 Method: {method} | Query: {query}")
+
     api_key = os.getenv('YT_API_KEY')
     youtube = build('youtube', 'v3', developerKey=api_key)
 
     filters = ["relevance", "date", "viewCount", "rating"]
     order = random.choice(filters)
+    print(f"📊 Using filter: {order}")
 
-    search_response = youtube.search().list(
-        q=query,
-        part='snippet',
-        type='video',
-        maxResults=5,
-        order=order
-    ).execute()
+    try:
+        search_response = youtube.search().list(
+            q=query,
+            part='snippet',
+            type='video',
+            maxResults=5,
+            order=order
+        ).execute()
 
-    items = search_response.get('items', [])
-    if not items:
-        return jsonify({'error': 'No videos found.'})
+        items = search_response.get('items', [])
+        if not items:
+            print(f"❌ No videos found for query: '{query}' | Method: {method} | Filter: {order}")
+            return jsonify({
+                'error': 'No videos found.',
+                'query': query,
+                'method': method,
+                'filter': order
+            })
 
-    choice = random.choice(items)
-    video_id = choice['id']['videoId']
+        choice = random.choice(items)
+        video_id = choice['id']['videoId']
 
-    return jsonify({
-        'method': method,
-        'query': query,
-        'videoId': video_id
-    })
+        print(f"✅ Selected video ID: {video_id} | Method: {method} | Filter: {order}")
+        return jsonify({
+            'method': method,
+            'query': query,
+            'filter': order,
+            'videoId': video_id
+        })
+
+    except Exception as e:
+        print(f"🔥 ERROR fetching video for query: '{query}' | Method: {method} | Filter: {order} | Error: {e}")
+        return jsonify({
+            'error': 'Failed to fetch video.',
+            'query': query,
+            'method': method,
+            'filter': order
+        })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
