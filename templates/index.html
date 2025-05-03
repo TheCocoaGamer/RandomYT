@@ -26,7 +26,9 @@
   <div id="player"></div>
   <script>
     let player;
-    let isLoading = false;  // New flag to prevent double loading
+    let isLoading = false;  // Prevent double loading
+    let hasEnded = false;   // Prevent duplicate END handling
+    let currentVideoId = null; // Track which video is expected
 
     let tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
@@ -67,10 +69,11 @@
             console.log("🎯 New Video ID:", data.videoId);
             console.log("Method:", data.method, "| Query:", data.query, "| Filter:", data.filter, "| Source:", data.fallback);
             player.loadVideoById(data.videoId);
+            currentVideoId = data.videoId;  // Lock in expected video
           } else {
             console.warn("⚠️ No video ID found for query:", data.query, "| Method:", data.method);
             isLoading = false;
-            setTimeout(fetchAndPlayVideo, 2000); // Retry in 2 seconds
+            setTimeout(fetchAndPlayVideo, 2000); // Retry
           }
         })
         .catch(err => {
@@ -80,25 +83,31 @@
         });
     }
 
-    let hasEnded = false;  // New flag for ending debounce
-
     function onPlayerStateChange(event) {
       console.log("Player state changed:", event.data);
 
       if (event.data === YT.PlayerState.ENDED) { // 0 = ended
+        let videoData = player.getVideoData();
+        let reportedVideoId = videoData && videoData.video_id;
+
+        if (reportedVideoId !== currentVideoId) {
+          console.log(`⚠️ END event ignored. Reported ID "${reportedVideoId}" does not match expected "${currentVideoId}".`);
+          return;
+        }
+
         if (!hasEnded) {
           hasEnded = true;
           console.log("🔄 Video ended. Loading next...");
           isLoading = false;
           fetchAndPlayVideo();
         } else {
-          console.log("⏳ Ignored duplicate END event.");
+          console.log("⏳ Ignored duplicate END event for video:", reportedVideoId);
         }
       }
 
       if (event.data === YT.PlayerState.PLAYING) { // 1 = playing
         isLoading = false;
-        hasEnded = false;  // Reset flag when a new video starts
+        hasEnded = false;  // Reset for new video
       }
     }
 
