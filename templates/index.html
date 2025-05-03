@@ -5,8 +5,7 @@
   <meta charset="UTF-8">
   <title>YouTube Randomizer TV</title>
   <style>
-    html,
-    body {
+    html, body {
       margin: 0;
       padding: 0;
       overflow: hidden;
@@ -26,10 +25,10 @@
   <div id="player"></div>
   <script>
     let player;
-    let isLoading = false;  // Prevent double loading
-    let hasEnded = false;   // Prevent duplicate END handling
-    let currentVideoId = null; // Track which video is expected
+    let currentVideoId = null;
+    let isFetchingVideo = false;  // Lock *inside* fetch logic
 
+    // Load the YouTube Iframe API
     let tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     let firstScriptTag = document.getElementsByTagName('script')[0];
@@ -56,11 +55,11 @@
     }
 
     function fetchAndPlayVideo() {
-      if (isLoading) {
-        console.log("⏳ Already loading a video. Skipping duplicate fetch.");
+      if (isFetchingVideo) {
+        console.log("⏳ fetchAndPlayVideo already running. Ignoring new call.");
         return;
       }
-      isLoading = true;
+      isFetchingVideo = true; // lock it
 
       fetch('/api/random-video')
         .then(response => response.json())
@@ -69,16 +68,16 @@
             console.log("🎯 New Video ID:", data.videoId);
             console.log("Method:", data.method, "| Query:", data.query, "| Filter:", data.filter, "| Source:", data.fallback);
             player.loadVideoById(data.videoId);
-            currentVideoId = data.videoId;  // Lock in expected video
+            currentVideoId = data.videoId;
           } else {
             console.warn("⚠️ No video ID found for query:", data.query, "| Method:", data.method);
-            isLoading = false;
-            setTimeout(fetchAndPlayVideo, 2000); // Retry
+            isFetchingVideo = false;
+            setTimeout(fetchAndPlayVideo, 2000);
           }
         })
         .catch(err => {
           console.error("❌ Error fetching video:", err);
-          isLoading = false;
+          isFetchingVideo = false;
           setTimeout(fetchAndPlayVideo, 3000);
         });
     }
@@ -86,7 +85,7 @@
     function onPlayerStateChange(event) {
       console.log("Player state changed:", event.data);
 
-      if (event.data === YT.PlayerState.ENDED) { // 0 = ended
+      if (event.data === YT.PlayerState.ENDED) {
         let videoData = player.getVideoData();
         let reportedVideoId = videoData && videoData.video_id;
 
@@ -95,22 +94,14 @@
           return;
         }
 
-        if (!hasEnded) {
-          hasEnded = true;
-          console.log("🔄 Video ended. Loading next...");
-          isLoading = false;
-          fetchAndPlayVideo();
-        } else {
-          console.log("⏳ Ignored duplicate END event for video:", reportedVideoId);
-        }
+        console.log("🔄 Video ended. Attempting to load next...");
+        fetchAndPlayVideo();  // New fetch, guarded by isFetchingVideo
       }
 
-      if (event.data === YT.PlayerState.PLAYING) { // 1 = playing
-        isLoading = false;
-        hasEnded = false;  // Reset for new video
+      if (event.data === YT.PlayerState.PLAYING) {
+        isFetchingVideo = false;  // Unlock fetch when playback starts
       }
     }
-
   </script>
 </body>
 
