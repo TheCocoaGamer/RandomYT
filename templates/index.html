@@ -32,7 +32,7 @@
           .then(data => {
             if (data.videoId) {
               console.log("🎯 New Video ID:", data.videoId);
-              console.log("Method:", data.method, "| Query:", data.query, "| Filter:", data.filter);
+              console.log("Method:", data.method, "| Query:", data.query, "| Filter:", data.filter, "| Source:", data.fallback);
               loadVideo(data.videoId);
             } else {
               console.warn("⚠️ No video ID found for query:", data.query, "| Method:", data.method);
@@ -47,7 +47,7 @@
 
       function loadVideo(videoId) {
         const iframe = document.getElementById("player");
-        iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&cc_load_policy=1&enablejsapi=1&modestbranding=1&rel=0&controls=1`;
+        iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=1&cc_load_policy=1&modestbranding=1&rel=0&controls=1`;
       }
 
       // Listen for video end → fetch new video
