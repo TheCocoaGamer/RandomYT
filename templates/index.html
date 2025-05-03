@@ -27,7 +27,16 @@
 
     <script>
       const filters = ["relevance", "date", "viewCount", "rating"];
-      const ytSearchApiKey = "YOUR_YOUTUBE_API_KEY";  // <<< You'll need this
+
+      let ytSearchApiKey = "";
+
+        fetch('/api/get-api-key')
+            .then(response => response.json())
+            .then(data => {
+                ytSearchApiKey = data.key;
+            });
+
+
 
       let player;
       let videoQueue = [];
