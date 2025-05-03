@@ -19,22 +19,20 @@
   </head>
   <body>
     <div id="player"></div>
-
     <script>
       let player;
-
-      // 1️⃣ Load the YouTube Iframe API dynamically
+      let isLoading = false;  // New flag to prevent double loading
+    
       let tag = document.createElement('script');
       tag.src = "https://www.youtube.com/iframe_api";
       let firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-      // 2️⃣ When API is ready, create the player
+    
       function onYouTubeIframeAPIReady() {
         player = new YT.Player('player', {
           height: '100%',
           width: '100%',
-          videoId: '', // Empty for now
+          videoId: '',
           playerVars: {
             'autoplay': 1,
             'mute': 1,
@@ -49,8 +47,14 @@
           }
         });
       }
-
+    
       function fetchAndPlayVideo() {
+        if (isLoading) {
+          console.log("⏳ Already loading a video. Skipping duplicate fetch.");
+          return;
+        }
+        isLoading = true;
+    
         fetch('/api/random-video')
           .then(response => response.json())
           .then(data => {
@@ -60,22 +64,30 @@
               player.loadVideoById(data.videoId);
             } else {
               console.warn("⚠️ No video ID found for query:", data.query, "| Method:", data.method);
+              isLoading = false;
               setTimeout(fetchAndPlayVideo, 2000); // Retry in 2 seconds
             }
           })
           .catch(err => {
             console.error("❌ Error fetching video:", err);
+            isLoading = false;
             setTimeout(fetchAndPlayVideo, 3000);
           });
       }
-
+    
       function onPlayerStateChange(event) {
         console.log("Player state changed:", event.data);
-        if (event.data === YT.PlayerState.ENDED) { // Video ended
+    
+        if (event.data === YT.PlayerState.ENDED) { // 0 = ended
           console.log("🔄 Video ended. Loading next...");
+          isLoading = false;
           fetchAndPlayVideo();
         }
+    
+        if (event.data === YT.PlayerState.PLAYING) { // 1 = playing
+          isLoading = false; // Reset flag when playing starts
+        }
       }
-    </script>
+    </script>    
   </body>
 </html>
