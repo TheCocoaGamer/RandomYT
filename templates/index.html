@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>YouTube Randomizer TV</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: black;
+      }
+      iframe {
+        border: none;
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <iframe 
+      id="player" 
+      allow="autoplay" 
+      allowfullscreen 
+      src="">
+    </iframe>
+
+    <script>
+      const filters = ["relevance", "date", "viewCount", "rating"];
+      const ytSearchApiKey = "YOUR_YOUTUBE_API_KEY";  // <<< You'll need this
+
+      let player;
+      let videoQueue = [];
+
+      function getRandomFilter() {
+        return filters[Math.floor(Math.random() * filters.length)];
+      }
+
+      function fetchRandomVideo() {
+        fetch('/api/random-video')
+          .then(response => response.json())
+          .then(data => {
+            let query = data.query;
+            console.log("🔎 Search query:", query);
+
+            // Fetch top 5 videos from YouTube API
+            const order = getRandomFilter();
+            const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=5&q=${encodeURIComponent(query)}&order=${order}&key=${ytSearchApiKey}`;
+
+            return fetch(apiUrl);
+          })
+          .then(response => response.json())
+          .then(result => {
+            const items = result.items;
+            if (!items || items.length === 0) {
+              console.error("No videos found, retrying...");
+              fetchRandomVideo();
+              return;
+            }
+
+            const randomIndex = Math.floor(Math.random() * Math.min(5, items.length));
+            const videoId = items[randomIndex].id.videoId;
+
+            console.log(`▶️ Playing video ID: ${videoId}`);
+            loadVideo(videoId);
+          })
+          .catch(err => {
+            console.error("Error fetching video:", err);
+            setTimeout(fetchRandomVideo, 2000); // retry after 2 seconds
+          });
+      }
+
+      function loadVideo(videoId) {
+        const iframe = document.getElementById("player");
+        iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&cc_load_policy=1&enablejsapi=1&modestbranding=1&rel=0&controls=0`;
+
+        // Once iframe loads, hook into YouTube Player API
+        iframe.onload = () => {
+          player = iframe.contentWindow;
+        };
+      }
+
+      // YouTube Iframe API event listener (to detect when video ends)
+      window.addEventListener("message", (event) => {
+        if (typeof event.data !== "string") return;
+        try {
+          const message = JSON.parse(event.data);
+          if (message.event === "onStateChange") {
+            console.log("Player state changed:", message.info);
+            // State 0 = ended
+            if (message.info === 0) {
+              console.log("⏭ Video ended, fetching new video...");
+              fetchRandomVideo();
+            }
+          }
+        } catch (e) {
+          // Ignore JSON parse errors from unrelated messages
+        }
+      });
+
+      // Start the magic
+      fetchRandomVideo();
+    </script>
+  </body>
+</html>

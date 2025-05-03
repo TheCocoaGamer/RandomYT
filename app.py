@@ -8,6 +8,12 @@ from static.word_randomizer import generate_word_query
 
 app = Flask(__name__)
 
+@app.route('/api/get-api-key')
+def get_api_key():
+    api_key = os.getenv('YT_API_KEY')
+    return jsonify({'key': api_key})
+
+
 @app.route('/')
 def index():
     return 'YouTube Randomizer is alive. Try /api/random-video to get a random query or video ID.'
