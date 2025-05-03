@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: youtube-randomizer
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: YT_API_KEY
+        value: AIzaSyCMqELVYn4hzUcZSMmRvlacABP8BNVY3dI
