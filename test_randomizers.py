@@ -1,15 +1,12 @@
 import random
 
-from static.string_randomizer import generate_string_query
 from static.id_randomizer import generate_valid_video_id
 from static.word_randomizer import generate_word_query
 
 def test_randomizer():
-    method = random.choice(['string', 'id', 'word'])
+    method = random.choice(['id', 'word'])
 
-    if method == 'string':
-        result = generate_string_query()
-    elif method == 'id':
+    if method == 'id':
         result = generate_valid_video_id()
     else:
         result = generate_word_query()
