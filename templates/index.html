@@ -10,7 +10,7 @@
         overflow: hidden;
         background: black;
       }
-      iframe {
+      iframe, #player {
         border: none;
         width: 100vw;
         height: 100vh;
@@ -18,14 +18,38 @@
     </style>
   </head>
   <body>
-    <iframe 
-      id="player" 
-      allow="autoplay" 
-      allowfullscreen 
-      src="">
-    </iframe>
+    <div id="player"></div>
 
     <script>
+      let player;
+
+      // 1️⃣ Load the YouTube Iframe API dynamically
+      let tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      let firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+      // 2️⃣ When API is ready, create the player
+      function onYouTubeIframeAPIReady() {
+        player = new YT.Player('player', {
+          height: '100%',
+          width: '100%',
+          videoId: '', // Empty for now
+          playerVars: {
+            'autoplay': 1,
+            'mute': 1,
+            'cc_load_policy': 1,
+            'modestbranding': 1,
+            'rel': 0,
+            'controls': 1
+          },
+          events: {
+            'onReady': fetchAndPlayVideo,
+            'onStateChange': onPlayerStateChange
+          }
+        });
+      }
+
       function fetchAndPlayVideo() {
         fetch('/api/random-video')
           .then(response => response.json())
@@ -33,7 +57,7 @@
             if (data.videoId) {
               console.log("🎯 New Video ID:", data.videoId);
               console.log("Method:", data.method, "| Query:", data.query, "| Filter:", data.filter, "| Source:", data.fallback);
-              loadVideo(data.videoId);
+              player.loadVideoById(data.videoId);
             } else {
               console.warn("⚠️ No video ID found for query:", data.query, "| Method:", data.method);
               setTimeout(fetchAndPlayVideo, 2000); // Retry in 2 seconds
@@ -45,30 +69,13 @@
           });
       }
 
-      function loadVideo(videoId) {
-        const iframe = document.getElementById("player");
-        iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=1&cc_load_policy=1&modestbranding=1&rel=0&controls=1`;
-      }
-
-      // Listen for video end → fetch new video
-      window.addEventListener("message", (event) => {
-        if (typeof event.data !== "string") return;
-        try {
-          const message = JSON.parse(event.data);
-          if (message.event === "onStateChange") {
-            console.log("Player state changed:", message.info);
-            if (message.info === 0) { // 0 = ended
-              console.log("🔄 Video ended. Loading next...");
-              fetchAndPlayVideo();
-            }
-          }
-        } catch (e) {
-          console.error("❌ Failed to parse player message:", e);
+      function onPlayerStateChange(event) {
+        console.log("Player state changed:", event.data);
+        if (event.data === YT.PlayerState.ENDED) { // Video ended
+          console.log("🔄 Video ended. Loading next...");
+          fetchAndPlayVideo();
         }
-      });
-
-      // Start the first video
-      fetchAndPlayVideo();
+      }
     </script>
   </body>
 </html>
