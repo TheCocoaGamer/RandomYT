@@ -4,7 +4,7 @@ import random
 from googleapiclient.discovery import build
 
 from static.string_randomizer import generate_string_query
-from static.id_randomizer import generate_short_query
+from static.id_randomizer import generate_valid_video_id
 from static.word_randomizer import generate_word_query
 
 app = Flask(__name__)
@@ -20,7 +20,7 @@ def random_video():
     if method == 'string':
         query = generate_string_query()
     elif method == 'id':
-        query = generate_short_query()
+        query = generate_valid_video_id()
     else:
         query = generate_word_query()
 
