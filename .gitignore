@@ -1,0 +1,39 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Environment files
+.env
+*.env
+
+# Flask instance folders
+instance/
+
+# Python virtual environments
+venv/
+.venv/
+ENV/
+env/
+.Python
+
+# VSCode settings
+.vscode/
+
+# Mac system files
+.DS_Store
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Render deployment cache (just in case)
+render-build/
+
+# Urban Dictionary or YouTube API keys (if you ever save them locally)
+yt_api_key.txt
+urban_api_key.txt

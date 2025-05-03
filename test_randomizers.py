@@ -1,7 +1,7 @@
 import random
 
 from static.string_randomizer import generate_string_query
-from static.id_randomizer import generate_short_query
+from static.id_randomizer import generate_valid_video_id
 from static.word_randomizer import generate_word_query
 
 def test_randomizer():
@@ -10,7 +10,7 @@ def test_randomizer():
     if method == 'string':
         result = generate_string_query()
     elif method == 'id':
-        result = generate_short_query()
+        result = generate_valid_video_id()
     else:
         result = generate_word_query()
 
